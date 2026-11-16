@@ -17,6 +17,7 @@ jobs:
       - run: pytest -q
       - run: node --check public/app.js
       - run: docker build -t deskline-test .
+      - run: python -m scripts.container_smoke
       - run: pip install playwright==1.56.0
       - run: python -m playwright install --with-deps chromium
       - run: python -m scripts.browser_smoke
