@@ -1,0 +1,11 @@
+{
+  "duration_seconds": 41.17,
+  "source_duration_seconds": 13.72,
+  "playback_slowdown": 3,
+  "width": 1280,
+  "height": 888,
+  "bytes": 417821,
+  "sha256": "cd2dd910b3a49423860affeadd9f49aa5919a1d14cec93353290702b501e9b33",
+  "source": "Chromium screen recording with fictional seeded data",
+  "audio": false
+}

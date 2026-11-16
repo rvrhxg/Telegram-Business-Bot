@@ -46,3 +46,6 @@ Docker: `docker compose up --build -d dashboard`, затем `docker compose exe
 
 
 [Readiness, JSON-логи и проверка backup/restore](docs/OPERATIONS.md).
+
+
+[Видеодемонстрация и обзорные кадры](docs/demo/README.md).

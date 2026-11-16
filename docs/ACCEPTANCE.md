@@ -19,3 +19,8 @@
 ## Readiness, безопасные HTTP-логи и backup/restore
 
 [CI 43930043895](https://github.com/rvrhxg/Telegram-Business-Bot/actions/runs/43930043895) на c1ec3e7: все job успешны на Python3.12/3.13/3.14. Проверены200/503 readiness, реальная недоступность БД/структуры, request_id и отсутствие URL/query/cookie/тела/секрета в JSON-событиях, общий500 без внутреннего текста, SQLite WAL-snapshot/restore, запрет перезаписи и повреждённый источник. Контейнер Deskline дополнительно восстановил реальную тестовую БД в новый файл и проверил услугу/внешние ключи. Docker build/runtime/readiness/persistence и Chromium успешны. Локально: 16 passed; PostgreSQL локально не установлен. Strict mypy охватывает новые эксплуатационные модули и ранее указанный типизированный модуль, RuffE9/F — app/tests/scripts. Шифрование/ротация/offsite/PITR и аварийные RPO/RTO не проверены; это остаётся MVP. [Инструкции](OPERATIONS.md).
+
+
+## Recorded demonstration
+
+CI 43939546954 passed. The published WebM is 41.17 seconds at 1280x888, without audio, with explicitly documented 3x playback slowdown. File SHA256 matches metadata; six-frame contact sheet was visually reviewed. This is a Chromium recording with fictional data. It does not establish production readiness or real Telegram delivery.
