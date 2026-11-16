@@ -22,7 +22,7 @@ with tempfile.TemporaryDirectory(prefix="deskline-browser-") as temporary:
     book(db,101,1,"Алексей Морозов",1)
     book(db,102,2,"Мария Соколова",2)
     db.close()
-    process=subprocess.Popen([sys.executable,"-m","uvicorn","app.api:create_app","--factory","--host","127.0.0.1","--port","8001"],env={**os.environ,"DATABASE_PATH":path,"APP_ORIGIN":"http://127.0.0.1:8001"})
+    process=subprocess.Popen([sys.executable,"-m","uvicorn","app.api:create_app","--factory","--no-access-log","--host","127.0.0.1","--port","8001"],env={**os.environ,"DATABASE_PATH":path,"APP_ORIGIN":"http://127.0.0.1:8001"})
     try:
         for _ in range(60):
             try:

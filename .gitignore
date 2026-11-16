@@ -9,3 +9,7 @@ __pycache__/
 /INTERVIEW.md
 .mypy_cache/
 .ruff_cache/
+
+*.dump
+*.backup
+/backups/

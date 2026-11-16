@@ -30,6 +30,7 @@ try:
     docker("run","-d","--name",name,"-p","127.0.0.1::8001","-v",volume+":/data","deskline-test")
     created=True
     base=ready()
+    assert httpx.get(base+'/api/ready').status_code==200
     password=uuid.uuid4().hex
     setup="import sys;from app.bookings import connect;from app.security import hash_password;db=connect('/data/deskline.sqlite');db.execute('INSERT INTO admins(email,password_hash) VALUES(?,?)',('ci@example.test',hash_password(sys.stdin.read())));db.commit();db.close()"
     subprocess.run(["docker","exec","-i",name,"python","-c",setup],input=password,text=True,check=True)
@@ -42,6 +43,10 @@ try:
     with httpx.Client(base_url=base,headers={"Origin":"http://localhost:8001"}) as client:
         assert client.post("/api/login",json=credentials).status_code==200
         assert client.get("/api/overview").json()["services"][0]["title"]=="Persistent service"
+    docker('exec',name,'python','-m','app.sqlite_backup','backup','/data/deskline.sqlite','/data/ci-backup.sqlite')
+    docker('exec',name,'python','-m','app.sqlite_backup','restore','/data/ci-backup.sqlite','/data/ci-restored.sqlite')
+    check="import sqlite3;db=sqlite3.connect('/data/ci-restored.sqlite');assert db.execute('SELECT count(*) FROM services').fetchone()[0]==1;assert not db.execute('PRAGMA foreign_key_check').fetchall();db.close()"
+    docker('exec',name,'python','-c',check)
     assert docker("exec",name,"id","-u")=="1000"
     print("Deskline container persistence and non-root smoke passed; no Telegram network used")
 except Exception:

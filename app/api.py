@@ -1,3 +1,4 @@
+from .observability import install_observability
 import os
 import time
 from datetime import datetime, timezone
@@ -203,6 +204,14 @@ def create_app(path=None, origin=None):
             return {"id":booking_id,"status":data.status}
         finally:
             db.close()
+
+    def database_probe():
+        import sqlite3
+        from contextlib import closing
+        with closing(sqlite3.connect(Path(path).resolve().as_uri()+'?mode=ro', uri=True, timeout=2)) as connection:
+            connection.execute('SELECT id FROM employees LIMIT 0')
+
+    install_observability(app, database_probe)
 
     static=Path(__file__).resolve().parent.parent/"public"
     if static.exists():

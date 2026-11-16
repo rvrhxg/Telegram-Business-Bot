@@ -10,7 +10,7 @@ Python 3.12–3.14 (проверены CI), отдельное окружени�
 
 ```sh
 python -m app.setup --admin-email admin@example.test --demo
-uvicorn app.api:create_app --factory --host 127.0.0.1 --port 8001
+uvicorn app.api:create_app --factory --no-access-log --host 127.0.0.1 --port 8001
 ```
 
 Пароль администратора вводится через getpass, встроенного пароля нет. Откройте http://localhost:8001. Демо добавляет вымышленные услуги и будущие UTC-слоты только в пустой каталог. Часовой пояс показывается браузером локально.
@@ -43,3 +43,6 @@ Docker: `docker compose up --build -d dashboard`, затем `docker compose exe
 
 
 Сотрудники и обновление существующей базы: [STAFF.md](docs/STAFF.md).
+
+
+[Readiness, JSON-логи и проверка backup/restore](docs/OPERATIONS.md).

@@ -19,5 +19,5 @@ select = ["E9", "F"]
 
 [tool.mypy]
 python_version = "3.12"
-files = ["app/intervals.py"]
+files = ["app/intervals.py", "app/observability.py", "app/sqlite_backup.py"]
 strict = true
