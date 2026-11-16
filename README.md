@@ -6,7 +6,7 @@
 
 ## Запуск
 
-Python 3.14, отдельное окружение, `pip install -r requirements.lock`. Затем:
+Python 3.12–3.14 (проверены CI), отдельное окружение, `pip install -r requirements.lock`. Затем:
 
 ```sh
 python -m app.setup --admin-email admin@example.test --demo
@@ -25,7 +25,7 @@ Docker: `docker compose up --build -d dashboard`, затем `docker compose exe
 
 ## Проверки и ограничения
 
-`pytest -q`: три теста проверяют транзакционное бронирование, реальный Dispatcher aiogram с перехваченным транспортом и административный HTTP-сценарий. [CI 43863176774](https://github.com/rvrhxg/Telegram-Business-Bot/actions/runs/43863176774) успешно выполнил тесты, Docker build и Chromium вход/создание услуги/завершение записи. [CI 43863564736](https://github.com/rvrhxg/Telegram-Business-Bot/actions/runs/43863564736) также подтвердил запуск контейнера, сохранение услуги и повторный вход после перезапуска, UID1000.
+`pytest -q`: 10 тестов проверяют транзакционное бронирование, реальный Dispatcher aiogram с перехваченным транспортом и административный HTTP-сценарий. [CI 43863176774](https://github.com/rvrhxg/Telegram-Business-Bot/actions/runs/43863176774) успешно выполнил тесты, Docker build и Chromium вход/создание услуги/завершение записи. [CI 43863564736](https://github.com/rvrhxg/Telegram-Business-Bot/actions/runs/43863564736) также подтвердил запуск контейнера, сохранение услуги и повторный вход после перезапуска, UID1000.
 
 Реальная доставка Telegram не проверена: токен не предоставлялся. В MVP один бизнес и один ресурс расписания; пересечения интервалов запрещены, длительность услуги учитывается. Нет напоминаний, оплаты и нескольких сотрудников. Список записей/слотов ограничен 200; метрики относятся к показанным записям. Это проект портфолио, не production-сервис.
 
