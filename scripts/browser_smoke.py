@@ -56,6 +56,7 @@ with tempfile.TemporaryDirectory(prefix="deskline-browser-") as temporary:
             dialog.get_by_label('Имя сотрудника',exact=True).fill('Елена Крылова')
             dialog.get_by_role('button',name='Сохранить',exact=True).click()
             dialog.wait_for(state='hidden')
+            page.locator('#employee-filter option').filter(has_text='Елена Крылова').wait_for(state='attached')
             page.get_by_role('button',name='+ Время записи',exact=True).click()
             dialog.get_by_label('Сотрудник',exact=True).select_option(label='Елена Крылова')
             dialog.get_by_label('Дата и время (ваш часовой пояс)',exact=True).fill('2099-01-01T10:00')

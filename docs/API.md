@@ -14,3 +14,6 @@ Swagger: /docs. Cookie session, HttpOnly/SameSite, Secure в production. Все 
 | GET | /api/health | HTTP liveness |
 
 Закрытая запись не может сменить терминальный статус. Повтор того же статуса допустим. API управления не создаёт запись от имени Telegram-пользователя: идентичность клиента берётся только из обработанного ботом Update. Ошибки возвращаются в detail с кодами 400/401/403/404/409/413/415/422/429.
+
+
+Сотрудники: POST /api/employees {name} (администратор). POST /api/slots принимает employee_id (default1). GET /api/overview возвращает employees, employee_name в слотах/записях и available_slot_ids с учётом интервалов. Детали схемы и обновления: [STAFF.md](STAFF.md).
