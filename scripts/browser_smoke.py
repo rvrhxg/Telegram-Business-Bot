@@ -45,7 +45,8 @@ with tempfile.TemporaryDirectory(prefix="deskline-browser-") as temporary:
             page.get_by_role("button",name="Войти →",exact=True).click()
             page.locator("#dashboard").wait_for(state="visible")
             pause(page)
-            page.screenshot(path="screenshots/dashboard-desktop.png",full_page=True)
+            if not recording_enabled():
+                page.screenshot(path="screenshots/dashboard-desktop.png",full_page=True)
             page.get_by_role("button",name="+ Услуга",exact=True).click()
             dialog=page.locator("#editor")
             dialog.get_by_label("Название",exact=True).fill("Разбор бизнес-процессов")
@@ -73,9 +74,11 @@ with tempfile.TemporaryDirectory(prefix="deskline-browser-") as temporary:
             page.locator('#employee-filter').select_option('')
             page.locator("#bookings .row").filter(has_text="Алексей Морозов").get_by_role("button",name="Завершить",exact=True).click()
             page.locator("#bookings .row").filter(has_text="Алексей Морозов").get_by_text("Завершено",exact=True).wait_for()
-            page.set_viewport_size({"width":390,"height":844})
+            if not recording_enabled():
+                page.set_viewport_size({"width":390,"height":844})
             pause(page)
-            page.screenshot(path="screenshots/dashboard-mobile.png",full_page=True)
+            if not recording_enabled():
+                page.screenshot(path="screenshots/dashboard-mobile.png",full_page=True)
             assert not errors,errors
             finish_recording(page,'deskline')
             browser.close()
