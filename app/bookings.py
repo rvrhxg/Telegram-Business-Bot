@@ -1,6 +1,6 @@
 """Persistent booking rules shared by bot and management API."""
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 
 class BookingConflict(ValueError):
@@ -40,6 +40,15 @@ def book(db, user_id, slot_id, name, update_id):
         slot = db.execute("SELECT * FROM slots WHERE id=?", (slot_id,)).fetchone()
         if not slot or datetime.fromisoformat(slot["starts_at"]) <= datetime.now(timezone.utc):
             raise BookingConflict("Slot unavailable")
+        # One business resource. Half-open [start,end) permits back-to-back visits.
+        start = datetime.fromisoformat(slot['starts_at'])
+        duration = db.execute('SELECT duration_minutes FROM services WHERE id=?', (slot['service_id'],)).fetchone()[0]
+        end = start + timedelta(minutes=duration)
+        active = db.execute("SELECT s.starts_at,v.duration_minutes FROM bookings b JOIN slots s ON s.id=b.slot_id JOIN services v ON v.id=s.service_id WHERE b.status IN('confirmed','completed')").fetchall()
+        for other in active:
+            other_start = datetime.fromisoformat(other['starts_at'])
+            if start < other_start + timedelta(minutes=other['duration_minutes']) and other_start < end:
+                raise BookingConflict('Appointment interval overlaps an active booking')
         try:
             cursor = db.execute("INSERT INTO bookings(telegram_user_id,slot_id,customer_name,created_at) VALUES(?,?,?,?)", (user_id,slot_id,name.strip(),datetime.now(timezone.utc).isoformat()))
             db.execute("INSERT INTO processed_updates VALUES(?,?)", (update_id,cursor.lastrowid))
