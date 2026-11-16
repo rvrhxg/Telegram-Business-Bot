@@ -9,3 +9,8 @@
 [CI 43907341139](https://github.com/rvrhxg/Telegram-Business-Bot/actions/runs/43907341139) на 34296e0: Python 3.12, 3.13, 3.14, Docker/runtime и Chromium успешны; 9 тестов с проверками пересечения интервалов. После этого добавлен отдельный тест конкурентной записи: локально полный набор 10 passed на Python 3.14, CI повторяется. Реальная Telegram-доставка не проверена.
 
 [Финальный CI 43909764342](https://github.com/rvrhxg/Telegram-Business-Bot/actions/runs/43909764342) на 6b4d66d: 10 тестов с конкурентной гонкой успешны на Python 3.12, 3.13 и 3.14; Docker/runtime и Chromium успешны.
+
+
+## Расписания сотрудников
+
+[CI 43919717118](https://github.com/rvrhxg/Telegram-Business-Bot/actions/runs/43919717118) на 611de43: 12 тестов успешны на Python 3.12, 3.13, 3.14; Ruff E9/F, strict mypy интервалов, Docker build/runtime/persistence и Chromium успешны. Браузер создал сотрудника и его слот, выбрал фильтр сотрудника и завершил существующую запись. Скриншоты1440/390px получены из этого CI и просмотрены визуально. Тест переноса первоначальной базы сохранил ID и внешние ключи. Реальная Telegram-доставка по-прежнему не проверена.
