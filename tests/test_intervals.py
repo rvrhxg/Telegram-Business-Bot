@@ -39,3 +39,35 @@ def test_completed_appointment_still_reserves_interval(db):
         db.execute("UPDATE bookings SET status='completed' WHERE id=?", (first['id'],))
     with pytest.raises(BookingConflict):
         book(db,102,2,'B',2)
+
+
+def test_concurrent_overlapping_slots_allow_only_one_booking(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    path = tmp_path / 'race.sqlite'
+    setup = connect(path)
+    with setup:
+        setup.execute("INSERT INTO services VALUES(1,'Visit',60,100)")
+        setup.executemany('INSERT INTO slots VALUES(?,1,?)',[(1,'2099-01-01T10:00:00+00:00'),(2,'2099-01-01T10:30:00+00:00')])
+    setup.close()
+    barrier = Barrier(2)
+
+    def attempt(slot):
+        connection = connect(path)
+        try:
+            barrier.wait(timeout=10)
+            try:
+                book(connection,100+slot,slot,'Customer',slot)
+                return True
+            except BookingConflict:
+                return False
+        finally:
+            connection.close()
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        assert sorted(pool.map(attempt,[1,2])) == [False,True]
+    check = connect(path)
+    try:
+        assert check.execute('SELECT count(*) FROM bookings').fetchone()[0] == 1
+    finally:
+        check.close()
