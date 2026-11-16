@@ -35,10 +35,14 @@ def finish_recording(page, name):
     ffmpeg, ffprobe = shutil.which('ffmpeg'), shutil.which('ffprobe')
     if not ffmpeg or not ffprobe:
         raise RuntimeError('Install ffmpeg/ffprobe for recording review')
+    source_details = json.loads(subprocess.check_output([ffprobe, '-v', 'error', '-show_entries',
+                                 'format=duration', '-of', 'json', str(raw)], text=True))
+    source_duration = float(source_details['format']['duration'])
+    slowdown = 3
     output = raw.with_name(name+'-demo.webm')
     for crf in (36, 43):
         subprocess.run([ffmpeg, '-hide_banner', '-loglevel', 'error', '-y', '-i', str(raw), '-an',
-                        '-vf', 'fps=12,scale=1280:-2', '-c:v', 'libvpx-vp9', '-b:v', '0',
+                        '-vf', f'setpts={slowdown}*(PTS-STARTPTS),fps=12,scale=1280:-2', '-c:v', 'libvpx-vp9', '-b:v', '0',
                         '-crf', str(crf), '-deadline', 'good', '-cpu-used', '4', str(output)], check=True)
         if output.stat().st_size <= 750000:
             break
@@ -48,12 +52,13 @@ def finish_recording(page, name):
                           'format=duration:stream=width,height,codec_type', '-of', 'json', str(output)], text=True))
     duration = float(details['format']['duration'])
     stream = next(s for s in details['streams'] if s['codec_type'] == 'video')
-    if duration < 5 or any(s['codec_type'] == 'audio' for s in details['streams']):
+    if duration < 15 or abs(duration-source_duration*slowdown)>1 or any(s['codec_type'] == 'audio' for s in details['streams']):
         raise RuntimeError('Unexpected recording duration or audio stream')
     contact = raw.with_name(name+'-contact.png')
     subprocess.run([ffmpeg, '-hide_banner', '-loglevel', 'error', '-y', '-i', str(output),
                     '-vf', f'fps=6/{duration},scale=480:-1,tile=3x2', '-frames:v', '1', str(contact)], check=True)
-    metadata = {'duration_seconds': round(duration, 2), 'width': stream['width'], 'height': stream['height'],
+    metadata = {'duration_seconds': round(duration, 2), 'source_duration_seconds': round(source_duration, 2),
+                'playback_slowdown': slowdown, 'width': stream['width'], 'height': stream['height'],
                 'bytes': output.stat().st_size, 'sha256': hashlib.sha256(output.read_bytes()).hexdigest(),
                 'source': 'Chromium screen recording with fictional seeded data', 'audio': False}
     raw.with_name(name+'-metadata.json').write_text(json.dumps(metadata, indent=2)+'\n', encoding='utf8')
