@@ -43,3 +43,16 @@ jobs:
         with:
           name: deskline-screenshots
           path: screenshots/
+
+      - name: Record reproducible UI demonstration
+        run: |
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends ffmpeg
+          fi
+          python -m scripts.demo
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deskline-demo-video
+          path: recordings/
+          retention-days: 14

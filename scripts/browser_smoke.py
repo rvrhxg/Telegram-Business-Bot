@@ -1,3 +1,4 @@
+from scripts.recording import recording_enabled, recording_options, pause, finish_recording
 import os
 import subprocess
 import sys
@@ -34,8 +35,8 @@ with tempfile.TemporaryDirectory(prefix="deskline-browser-") as temporary:
             raise RuntimeError("Dashboard did not start")
         Path("screenshots").mkdir(exist_ok=True)
         with sync_playwright() as p:
-            browser=p.chromium.launch()
-            page=browser.new_page(viewport={"width":1440,"height":1000})
+            browser=p.chromium.launch(slow_mo=200 if recording_enabled() else 0)
+            page=browser.new_page(viewport={"width":1440,"height":1000}, **recording_options())
             errors=[]
             page.on("pageerror",lambda error:errors.append(str(error)))
             page.goto("http://127.0.0.1:8001")
@@ -43,6 +44,7 @@ with tempfile.TemporaryDirectory(prefix="deskline-browser-") as temporary:
             page.get_by_label("Пароль",exact=True).fill(password)
             page.get_by_role("button",name="Войти →",exact=True).click()
             page.locator("#dashboard").wait_for(state="visible")
+            pause(page)
             page.screenshot(path="screenshots/dashboard-desktop.png",full_page=True)
             page.get_by_role("button",name="+ Услуга",exact=True).click()
             dialog=page.locator("#editor")
@@ -69,8 +71,10 @@ with tempfile.TemporaryDirectory(prefix="deskline-browser-") as temporary:
             page.locator("#bookings .row").filter(has_text="Алексей Морозов").get_by_role("button",name="Завершить",exact=True).click()
             page.locator("#bookings .row").filter(has_text="Алексей Морозов").get_by_text("Завершено",exact=True).wait_for()
             page.set_viewport_size({"width":390,"height":844})
+            pause(page)
             page.screenshot(path="screenshots/dashboard-mobile.png",full_page=True)
             assert not errors,errors
+            finish_recording(page,'deskline')
             browser.close()
     finally:
         process.terminate()
