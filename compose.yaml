@@ -1,0 +1,21 @@
+services:
+  dashboard:
+    build: .
+    ports:
+      - "127.0.0.1:8001:8001"
+    environment:
+      APP_ORIGIN: http://localhost:8001
+    volumes:
+      - deskline-data:/data
+  bot:
+    build: .
+    profiles: ["telegram"]
+    command: ["python", "-m", "app.bot"]
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN:-}
+    volumes:
+      - deskline-data:/data
+    healthcheck:
+      disable: true
+volumes:
+  deskline-data:
