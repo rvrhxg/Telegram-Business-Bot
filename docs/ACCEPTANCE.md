@@ -14,3 +14,8 @@
 ## Расписания сотрудников
 
 [CI 43919717118](https://github.com/rvrhxg/Telegram-Business-Bot/actions/runs/43919717118) на 611de43: 12 тестов успешны на Python 3.12, 3.13, 3.14; Ruff E9/F, strict mypy интервалов, Docker build/runtime/persistence и Chromium успешны. Браузер создал сотрудника и его слот, выбрал фильтр сотрудника и завершил существующую запись. Скриншоты1440/390px получены из этого CI и просмотрены визуально. Тест переноса первоначальной базы сохранил ID и внешние ключи. Реальная Telegram-доставка по-прежнему не проверена.
+
+
+## Readiness, безопасные HTTP-логи и backup/restore
+
+[CI 43930043895](https://github.com/rvrhxg/Telegram-Business-Bot/actions/runs/43930043895) на c1ec3e7: все job успешны на Python3.12/3.13/3.14. Проверены200/503 readiness, реальная недоступность БД/структуры, request_id и отсутствие URL/query/cookie/тела/секрета в JSON-событиях, общий500 без внутреннего текста, SQLite WAL-snapshot/restore, запрет перезаписи и повреждённый источник. Контейнер Deskline дополнительно восстановил реальную тестовую БД в новый файл и проверил услугу/внешние ключи. Docker build/runtime/readiness/persistence и Chromium успешны. Локально: 16 passed; PostgreSQL локально не установлен. Strict mypy охватывает новые эксплуатационные модули и ранее указанный типизированный модуль, RuffE9/F — app/tests/scripts. Шифрование/ротация/offsite/PITR и аварийные RPO/RTO не проверены; это остаётся MVP. [Инструкции](OPERATIONS.md).
