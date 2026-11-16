@@ -11,7 +11,7 @@ class BookingTests(unittest.TestCase):
             try:
                 with db:
                     db.execute("INSERT INTO services VALUES(1,'Консультация',30,150000)")
-                    db.execute("INSERT INTO slots VALUES(1,1,'2099-01-01T10:00:00+00:00')")
+                    db.execute("INSERT INTO slots(id,service_id,starts_at) VALUES(1,1,'2099-01-01T10:00:00+00:00')")
                 first = book(db,101,1,"Customer",1001)
                 self.assertEqual(book(db,101,1,"Customer",1001)["id"],first["id"])
                 with self.assertRaises(BookingConflict):

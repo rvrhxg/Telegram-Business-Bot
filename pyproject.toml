@@ -10,3 +10,14 @@ test = ["pytest>=8,<10", "httpx>=0.27,<1"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E9", "F"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["app/intervals.py"]
+strict = true

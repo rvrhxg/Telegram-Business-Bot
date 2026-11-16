@@ -7,7 +7,7 @@ def db(tmp_path):
     connection = connect(tmp_path / 'intervals.sqlite')
     with connection:
         connection.executemany('INSERT INTO services VALUES(?,?,?,?)', [(1,'Short',30,100),(2,'Long',90,200)])
-        connection.executemany('INSERT INTO slots VALUES(?,?,?)', [
+        connection.executemany('INSERT INTO slots(id,service_id,starts_at) VALUES(?,?,?)', [
             (1,1,'2099-01-01T10:00:00+00:00'),
             (2,1,'2099-01-01T10:15:00+00:00'),
             (3,2,'2099-01-01T09:30:00+00:00'),
@@ -48,7 +48,7 @@ def test_concurrent_overlapping_slots_allow_only_one_booking(tmp_path):
     setup = connect(path)
     with setup:
         setup.execute("INSERT INTO services VALUES(1,'Visit',60,100)")
-        setup.executemany('INSERT INTO slots VALUES(?,1,?)',[(1,'2099-01-01T10:00:00+00:00'),(2,'2099-01-01T10:30:00+00:00')])
+        setup.executemany('INSERT INTO slots(id,service_id,starts_at) VALUES(?,1,?)',[(1,'2099-01-01T10:00:00+00:00'),(2,'2099-01-01T10:30:00+00:00')])
     setup.close()
     barrier = Barrier(2)
 

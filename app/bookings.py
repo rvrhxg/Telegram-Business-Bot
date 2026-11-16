@@ -1,6 +1,7 @@
 """Persistent booking rules shared by bot and management API."""
 import sqlite3
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
+from .intervals import overlaps
 
 
 class BookingConflict(ValueError):
@@ -20,7 +21,55 @@ def connect(path):
     CREATE TABLE IF NOT EXISTS admins(id INTEGER PRIMARY KEY,email TEXT NOT NULL UNIQUE,password_hash TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS admin_sessions(token_hash TEXT PRIMARY KEY,admin_id INTEGER NOT NULL REFERENCES admins(id),expires_at INTEGER NOT NULL);
     """)
+    migrate_staff(db)
     return db
+
+
+def migrate_staff(db):
+    """Upgrade the original single-resource database without losing bookings."""
+    if 'employee_id' in {row['name'] for row in db.execute('PRAGMA table_info(slots)')}:
+        return
+    db.execute('PRAGMA foreign_keys=OFF')
+    try:
+        with db:
+            db.execute('BEGIN IMMEDIATE')
+            # Another connection may have completed the migration while we waited.
+            if 'employee_id' in {row['name'] for row in db.execute('PRAGMA table_info(slots)')}:
+                return
+            db.execute('CREATE TABLE employees(id INTEGER PRIMARY KEY,name TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1 CHECK(active IN(0,1)))')
+            db.execute("INSERT INTO employees(id,name) VALUES(1,'Основной специалист')")
+            db.execute('CREATE TABLE slots_v2(id INTEGER PRIMARY KEY,service_id INTEGER NOT NULL REFERENCES services(id),starts_at TEXT NOT NULL,employee_id INTEGER NOT NULL DEFAULT 1 REFERENCES employees(id),UNIQUE(employee_id,starts_at))')
+            db.execute('INSERT INTO slots_v2(id,service_id,starts_at) SELECT id,service_id,starts_at FROM slots')
+            db.execute('DROP TABLE slots')
+            db.execute('ALTER TABLE slots_v2 RENAME TO slots')
+            if db.execute('PRAGMA foreign_key_check').fetchone():
+                raise ValueError('Migration foreign key validation failed')
+            db.execute('PRAGMA user_version=2')
+    finally:
+        db.execute('PRAGMA foreign_keys=ON')
+
+
+def interval_available(db, slot):
+    start = datetime.fromisoformat(slot['starts_at'])
+    duration = db.execute('SELECT duration_minutes FROM services WHERE id=?', (slot['service_id'],)).fetchone()[0]
+    active = db.execute("SELECT s.starts_at,v.duration_minutes FROM bookings b JOIN slots s ON s.id=b.slot_id JOIN services v ON v.id=s.service_id WHERE s.employee_id=? AND b.status IN('confirmed','completed')", (slot['employee_id'],)).fetchall()
+    for other in active:
+        other_start = datetime.fromisoformat(other['starts_at'])
+        if overlaps(start, duration, other_start, other['duration_minutes']):
+            return False
+    return True
+
+
+def available_slots(db, limit=30):
+    rows = db.execute('SELECT s.*,v.title,e.name AS employee_name FROM slots s JOIN services v ON v.id=s.service_id JOIN employees e ON e.id=s.employee_id WHERE e.active=1 ORDER BY s.starts_at,s.id').fetchall()
+    now = datetime.now(timezone.utc)
+    result = []
+    for slot in rows:
+        if datetime.fromisoformat(slot['starts_at']) > now and interval_available(db, slot):
+            result.append(dict(slot))
+            if len(result) == limit:
+                break
+    return result
 
 
 def book(db, user_id, slot_id, name, update_id):
@@ -40,15 +89,8 @@ def book(db, user_id, slot_id, name, update_id):
         slot = db.execute("SELECT * FROM slots WHERE id=?", (slot_id,)).fetchone()
         if not slot or datetime.fromisoformat(slot["starts_at"]) <= datetime.now(timezone.utc):
             raise BookingConflict("Slot unavailable")
-        # One business resource. Half-open [start,end) permits back-to-back visits.
-        start = datetime.fromisoformat(slot['starts_at'])
-        duration = db.execute('SELECT duration_minutes FROM services WHERE id=?', (slot['service_id'],)).fetchone()[0]
-        end = start + timedelta(minutes=duration)
-        active = db.execute("SELECT s.starts_at,v.duration_minutes FROM bookings b JOIN slots s ON s.id=b.slot_id JOIN services v ON v.id=s.service_id WHERE b.status IN('confirmed','completed')").fetchall()
-        for other in active:
-            other_start = datetime.fromisoformat(other['starts_at'])
-            if start < other_start + timedelta(minutes=other['duration_minutes']) and other_start < end:
-                raise BookingConflict('Appointment interval overlaps an active booking')
+        if not db.execute('SELECT 1 FROM employees WHERE id=? AND active=1', (slot['employee_id'],)).fetchone() or not interval_available(db, slot):
+            raise BookingConflict('Employee unavailable or appointment interval overlaps')
         try:
             cursor = db.execute("INSERT INTO bookings(telegram_user_id,slot_id,customer_name,created_at) VALUES(?,?,?,?)", (user_id,slot_id,name.strip(),datetime.now(timezone.utc).isoformat()))
             db.execute("INSERT INTO processed_updates VALUES(?,?)", (update_id,cursor.lastrowid))

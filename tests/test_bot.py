@@ -31,7 +31,7 @@ def test_real_dispatcher_handles_booking_replay_and_owner_cancel(tmp_path):
     db = connect(path)
     with db:
         db.execute("INSERT INTO services VALUES(1,'Консультация',30,150000)")
-        db.execute("INSERT INTO slots VALUES(1,1,'2099-01-01T10:00:00+00:00')")
+        db.execute("INSERT INTO slots(id,service_id,starts_at) VALUES(1,1,'2099-01-01T10:00:00+00:00')")
     db.close()
 
     async def scenario():

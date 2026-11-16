@@ -3,7 +3,7 @@ import os
 from aiogram import Bot, Dispatcher, Router
 from aiogram.filters import Command
 from aiogram.types import Message, Update
-from .bookings import BookingConflict, book, cancel, connect
+from .bookings import BookingConflict, book, cancel, connect, available_slots
 
 
 def create_dispatcher(path):
@@ -29,9 +29,14 @@ def create_dispatcher(path):
 
     @router.message(Command("slots"))
     async def slots(message: Message):
-        from datetime import datetime, timezone
-        rows = await query("SELECT s.*,v.title FROM slots s JOIN services v ON v.id=s.service_id WHERE s.starts_at>? AND NOT EXISTS(SELECT 1 FROM bookings b WHERE b.slot_id=s.id AND b.status IN('confirmed','completed')) ORDER BY s.starts_at LIMIT 30", (datetime.now(timezone.utc).isoformat(),))
-        await message.answer("\n".join(f"{r['id']}. {r['title']} · {r['starts_at']}\nЗапись: /book {r['id']}" for r in rows) or "Свободного времени пока нет.")
+        def work():
+            db = connect(path)
+            try:
+                return available_slots(db)
+            finally:
+                db.close()
+        rows = await asyncio.to_thread(work)
+        await message.answer("\n".join(f"{r['id']}. {r['title']} · {r['employee_name']} · {r['starts_at']}\nЗапись: /book {r['id']}" for r in rows) or "Свободного времени пока нет.")
 
     @router.message(Command("book"))
     async def booking(message: Message, event_update: Update):
@@ -55,9 +60,9 @@ def create_dispatcher(path):
     async def mine(message: Message):
         if not message.from_user:
             return
-        rows = await query("SELECT b.*,s.starts_at,v.title FROM bookings b JOIN slots s ON s.id=b.slot_id JOIN services v ON v.id=s.service_id WHERE b.telegram_user_id=? ORDER BY b.id DESC LIMIT 30", (message.from_user.id,))
+        rows = await query("SELECT b.*,s.starts_at,v.title,e.name AS employee_name FROM bookings b JOIN slots s ON s.id=b.slot_id JOIN services v ON v.id=s.service_id JOIN employees e ON e.id=s.employee_id WHERE b.telegram_user_id=? ORDER BY b.id DESC LIMIT 30", (message.from_user.id,))
         names = {"confirmed": "Подтверждено", "cancelled": "Отменено", "completed": "Завершено"}
-        await message.answer("\n".join(f"№{r['id']} · {r['title']} · {r['starts_at']} · {names[r['status']]}" for r in rows) or "У вас пока нет записей.")
+        await message.answer("\n".join(f"№{r['id']} · {r['title']} · {r['employee_name']} · {r['starts_at']} · {names[r['status']]}" for r in rows) or "У вас пока нет записей.")
 
     @router.message(Command("cancel"))
     async def cancellation(message: Message):

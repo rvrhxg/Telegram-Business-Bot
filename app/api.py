@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, StrictInt
-from .bookings import connect
+from .bookings import connect, available_slots
 from .security import hash_password, verify_password, new_token, token_hash
 
 
@@ -24,7 +24,12 @@ class ServiceInput(BaseModel):
 
 class SlotInput(BaseModel):
     service_id: StrictInt = Field(gt=0)
+    employee_id: StrictInt = Field(default=1, gt=0)
     starts_at: datetime
+
+
+class EmployeeInput(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
 
 
 class StatusInput(BaseModel):
@@ -129,7 +134,13 @@ def create_app(path=None, origin=None):
         db=connect(path)
         try:
             admin(request,db)
-            return {"services":[dict(r) for r in db.execute("SELECT * FROM services ORDER BY id")],"slots":[dict(r) for r in db.execute("SELECT s.*,v.title FROM slots s JOIN services v ON v.id=s.service_id ORDER BY starts_at DESC LIMIT 200")],"bookings":[dict(r) for r in db.execute("SELECT b.*,s.starts_at,v.title FROM bookings b JOIN slots s ON s.id=b.slot_id JOIN services v ON v.id=s.service_id ORDER BY b.id DESC LIMIT 200")]}
+            return {
+                'available_slot_ids': [slot['id'] for slot in available_slots(db, 200)],
+                'employees': [dict(r) for r in db.execute('SELECT * FROM employees ORDER BY id')],
+                'services': [dict(r) for r in db.execute('SELECT * FROM services ORDER BY id')],
+                'slots': [dict(r) for r in db.execute('SELECT s.*,v.title,e.name AS employee_name FROM slots s JOIN services v ON v.id=s.service_id JOIN employees e ON e.id=s.employee_id ORDER BY s.starts_at DESC LIMIT 200')],
+                'bookings': [dict(r) for r in db.execute('SELECT b.*,s.starts_at,s.employee_id,v.title,e.name AS employee_name FROM bookings b JOIN slots s ON s.id=b.slot_id JOIN services v ON v.id=s.service_id JOIN employees e ON e.id=s.employee_id ORDER BY b.id DESC LIMIT 200')],
+            }
         finally:
             db.close()
 
@@ -154,10 +165,23 @@ def create_app(path=None, origin=None):
             admin(request,db)
             try:
                 with db:
-                    cursor=db.execute("INSERT INTO slots(service_id,starts_at) VALUES(?,?)",(data.service_id,data.starts_at.astimezone(timezone.utc).isoformat()))
+                    cursor=db.execute("INSERT INTO slots(service_id,starts_at,employee_id) VALUES(?,?,?)",(data.service_id,data.starts_at.astimezone(timezone.utc).isoformat(),data.employee_id))
                 return {"id":cursor.lastrowid}
             except sqlite3.IntegrityError:
                 raise HTTPException(409,"Service missing or time already exists")
+        finally:
+            db.close()
+
+    @app.post('/api/employees', status_code=201)
+    def employee(data: EmployeeInput, request: Request):
+        db = connect(path)
+        try:
+            admin(request, db)
+            if not data.name.strip():
+                raise HTTPException(400, 'Name required')
+            with db:
+                cursor = db.execute('INSERT INTO employees(name) VALUES(?)', (data.name.strip(),))
+            return {'id': cursor.lastrowid, 'name': data.name.strip()}
         finally:
             db.close()
 
